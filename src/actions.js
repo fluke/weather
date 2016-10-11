@@ -1,3 +1,5 @@
+import xhr from 'xhr';
+
 export function changeAddress(address) {
   return {
     type: 'CHANGE_ADDRESS',
@@ -31,4 +33,26 @@ export function setDates(dates) {
     type: 'SET_DATES',
     dates: dates
   };
+}
+
+export function fetchData(url) {
+  return function thunk(dispatch) {
+    xhr({
+      url: url
+    }, function(err, data) {
+      var list = JSON.parse(data.body).list, 
+          dates = [], 
+          temps = [];
+      
+      for (var i = 0; i < list.length; i++) {
+        dates.push(list[i].dt_txt);
+        temps.push(list[i].main.temp);
+      }
+      
+      dispatch(setTemps(temps));
+      dispatch(setDates(dates));
+      dispatch(setSelectedTemp(null));
+      dispatch(setSelectedDate(''));
+    });
+  }
 }

@@ -1,11 +1,11 @@
 /* global Plotly */
-import React, {Component} from 'react';
+import React from 'react';
 
 class Plot extends React.Component {
   drawPlot = () => {
     Plotly.newPlot('plot', [{
-      x: this.props.xData,
-      y: this.props.yData,
+      x: this.props.xData.toJS(),
+      y: this.props.yData.toJS(),
       type: this.props.type
     }], {
       margin: {

@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import './App.css';
-import xhr from 'xhr';
 import { connect } from 'react-redux';
 
 import Plot from './Plot.js'
@@ -9,38 +8,19 @@ import {
   changeAddress,
   setSelectedTemp,
   setSelectedDate,
-  setTemps,
-  setDates
+  fetchData
 } from './actions';
 
 class App extends Component {
 
   fetchData = (event) => {
     event.preventDefault();
-    var location = encodeURIComponent(this.props.address);
+    var location = encodeURIComponent(this.props.redux.get('address'));
     var urlPrefix = "http://api.openweathermap.org/data/2.5/forecast?APPID=3e83a72f86b83f5d62ee2c81a20003f0&units=metric&q=";
 
     var url = urlPrefix + location;
 
-    var self = this;
-
-    xhr({
-      url: url
-    }, function(err, data) {
-      var list = JSON.parse(data.body).list, 
-          dates = [], 
-          temps = [];
-      
-      for (var i = 0; i < list.length; i++) {
-        dates.push(list[i].dt_txt);
-        temps.push(list[i].main.temp);
-      }
-      
-      self.props.dispatch(setTemps(temps));
-      self.props.dispatch(setDates(dates));
-      self.props.dispatch(setSelectedTemp(null));
-      self.props.dispatch(setSelectedDate(''));
-    });
+    this.props.dispatch(fetchData(url));
   };
 
   changeAddress = (event) => {
@@ -50,15 +30,15 @@ class App extends Component {
   onPlotClick = (data) => {
     if (data.points) {
       var number = data.points[0].pointNumber;
-      this.props.dispatch(setSelectedTemp(this.props.temps[number]));
-      this.props.dispatch(setSelectedDate(this.props.dates[number]));
+      this.props.dispatch(setSelectedTemp(this.props.redux.getIn(['temps', number])));
+      this.props.dispatch(setSelectedDate(this.props.redux.getIn(['dates', number])));
     }
   };
 
   render() {
     var currentTemp = 'not loaded yet';
-    if (this.props.temps.length > 0) {
-      currentTemp = this.props.temps[0];
+    if (this.props.redux.get('temps').length != 0) {
+      currentTemp = this.props.redux.getIn(['temps', '0']);
     }
     return (
       <div>
@@ -68,22 +48,27 @@ class App extends Component {
             <input
               placeholder={"City, Country"}
               type="text"
-              value={this.props.address}
+              value={this.props.redux.get('address')}
               onChange={this.changeAddress}
             />
           </label>
         </form>
-        {(this.props.temps.length > 0) ? (
+        {(this.props.redux.getIn(['temps', '0'])) ? (
           <div className="wrapper">
-            {(this.props.selected.temp) ? (
-              <p>The temperature on { this.props.selected.date } will be { this.props.selected.temp }°C</p>
-            ) : (
-              <p>The current temperature is { currentTemp }°C!</p>
-            )}
+            {/* Render the current temperature if no specific date is selected */}
+            <p className="temp-wrapper">
+              <span className="temp">
+                { this.props.redux.getIn(['selected', 'temp']) ? this.props.redux.getIn(['selected', 'temp']) : currentTemp }
+              </span>
+              <span className="temp-symbol">°C</span>
+              <span className="temp-date">
+                { this.props.redux.getIn(['selected', 'temp']) ? this.props.redux.getIn(['selected', 'date']) : ''}
+              </span>
+            </p>
             <h2>Forecast</h2>
             <Plot
-              xData={this.props.dates}
-              yData={this.props.temps}
+              xData={this.props.redux.get('dates')}
+              yData={this.props.redux.get('temps')}
               onPlotClick={this.onPlotClick}
               type="scatter"
             />
@@ -96,7 +81,9 @@ class App extends Component {
 }
 
 function mapStateToProps(state) {
-  return state;
+  return {
+    redux: state
+  }
 }
 
 export default connect(mapStateToProps)(App);
